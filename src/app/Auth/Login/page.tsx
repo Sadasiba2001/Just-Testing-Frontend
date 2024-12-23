@@ -7,11 +7,11 @@ import { FaFacebook, FaLinkedin, FaGoogle, FaEnvelope, FaLock, FaEye, FaEyeSlash
 import Link from "next/link";
 import Image from "next/image";
 import LoginPic from "../../../../public/LoginPic.jpg";
-import Register from "../Register/page"; // Make sure to import the Register component
-// import ForgotPassword from "../ForgotPassword/page";
-import Dashboard from "../../Customers/Dashboard/page"
+import Register from "../Register/page";
+import CryptoJS from "crypto-js";
 
 const Login1: React.FC = () => {
+  const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_SECRET_KEY || "your-secure-key";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +20,11 @@ const Login1: React.FC = () => {
   const [userType, setUserType] = useState("");
   const [isRegisterForm, setIsRegisterForm] = useState(false); // State to toggle forms
   const router = useRouter();
+
+  const encryptData = (data: string): string => {
+    return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
+  };
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,10 +40,21 @@ const Login1: React.FC = () => {
       const response = await axios.post(`${apiUrl}`, { email, password });
 
       if (response.status === 200) {
-        const { access_token, refresh_token } = response.data || {};
+        const { access_token, refresh_token, email, role, session_key } = response.data || {};
         if (access_token && refresh_token) {
-          localStorage.setItem("access_token", access_token);
-          localStorage.setItem("refresh_token", refresh_token);
+
+          const encryptAccessToken = encryptData(access_token);
+          const encryptRefreshToken = encryptData(refresh_token);
+          const encryptEmail = encryptData(email);
+          const encryptRole = encryptData(role);
+          const encryptSessionKey = encryptData(session_key);
+
+          sessionStorage.setItem('email', encryptEmail);
+          sessionStorage.setItem('role', encryptRole);
+          sessionStorage.setItem('session_key', encryptSessionKey);
+          sessionStorage.setItem("access_token", encryptAccessToken);
+          sessionStorage.setItem("refresh_token", encryptRefreshToken);
+
           setEmail("");
           setPassword("");
           router.push("/Customers/Dashboard");
